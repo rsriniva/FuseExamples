@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Configures the Camel Context-->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+  <bean id="myStrategy" class="com.test.Aggregate"/>
+
+  <camelContext xmlns="http://camel.apache.org/schema/spring">
+    <route customId="true" id="timerroute">
+        <description>manually creates a message every 10sec and then sends on to be processed.</description>
+        <from uri="timer://foo?fixedRate=true&amp;period=10000"/>
+        <setBody>
+            <simple>&lt;orders orderid="1"&gt;&lt;order&gt;order1&lt;/order&gt;&lt;order&gt;order2&lt;/order&gt;&lt;/orders&gt;</simple>
+        </setBody>
+        <to uri="direct:processQuote"/>
+    </route>
+    <route customId="true" id="mainroute">
+        <description>
+    		Receives messages from direct:processQuote. 
+    		Split the quote into orders and then send off to the k8proxy to add the price for each order item.
+    		Use the built in aggregator to aggregate the results using the strategyRef=myStrategy bean (implements the AggregatorStrategy interface)
+    	</description>
+        <from uri="direct:processQuote"/>
+        <log message="This is the body before splitting: ${body}"/>
+        <split strategyRef="myStrategy">
+            <xpath>/orders/order</xpath>
+            <to uri="direct:k8proxy"/>
+        </split>
+        <log message="This is the aggregated message ${body}"/>
+    </route>
+    <route customId="true" id="k8Proxy">
+        <description>This is a dummy proxy which will call the k8 system. Just add dummy return xml for testing</description>
+        <from uri="direct:k8proxy"/>
+        <log message="k8proxy received: ${body}"/>
+        <transform>
+            <simple>&lt;quote&gt;${body}&lt;price&gt;£145.63&lt;/price&gt;&lt;quote&gt;</simple>
+        </transform>
+        <log message="k8proxy response: ${body}"/>
+    </route>
+</camelContext>
+
+</beans>
