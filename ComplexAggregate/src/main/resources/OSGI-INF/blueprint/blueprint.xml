@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:camel="http://camel.apache.org/schema/blueprint"
+           xmlns:cxf="http://camel.apache.org/schema/blueprint/cxf"
+           xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0"
+           xmlns:jaxrs="http://cxf.apache.org/blueprint/jaxrs"
+           xmlns:soap="http://www.w3.org/2003/05/soap-envelope"
+           xmlns:ws="http://www.webserviceX.NET/"           
+           xsi:schemaLocation="
+             http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd
+             http://camel.apache.org/schema/blueprint/cxf http://camel.apache.org/schema/blueprint/cxf/camel-cxf.xsd
+             http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0 http://aries.apache.org/schemas/blueprint-cm/blueprint-cm-1.0.0.xsd
+             http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+             http://cxf.apache.org/blueprint/jaxrs http://http://cxf.apache.org/schemas/blueprint/jaxrs.xsd">
+
+
+	<cxf:rsServer id="restFrontend" address="http://localhost:9090/route" serviceClass="com.mycompany.camel.cxf.GetQuoteResource" />   
+	<bean id="aggregateOrdersBean" class="com.mycompany.beans.AggregateOrders"/>
+
+<camelContext xmlns="http://camel.apache.org/schema/blueprint">
+    <endpoint uri="http://www.webservicex.net/stockquote.asmx" id="callQuoteWebService"/>
+    <route customId="true" id="Main Route">
+        <from uri="cxfrs:bean:restFrontend"/>
+        <removeHeaders pattern="CamelHttp*"/>
+        <setHeader headerName="Content-Type">
+            <simple>text/xml</simple>
+        </setHeader>
+        <setHeader headerName="numorders">
+            <xpath>/quote/@numorders</xpath>
+        </setHeader>
+        <setHeader headerName="orderid">
+            <xpath>/quote/@orderid</xpath>
+        </setHeader>
+        <split parallelProcessing="true" strategyRef="aggregateOrdersBean">
+            <xpath>/quote/company</xpath>
+            <to uri="direct:serviceProxy"/>
+            <aggregate strategyRef="aggregateOrdersBean">
+                <correlationExpression>
+                    <header>orderid</header>
+                </correlationExpression>
+                <completionSize>
+                    <header>numorders</header>
+                </completionSize>
+                <log message="${body}"/>
+            </aggregate>
+        </split>
+    </route>
+    <route customId="true" id="Serviceproxy">
+        <from uri="direct:serviceProxy"/>
+        <to uri="xslt:file:///home/graeme/.workspace/public/ComplexAggregate/src/main/resources/xsl/quote.xsl"/>
+        <to ref="callQuoteWebService"/>
+        <setBody>
+            <xpath resultType="java.lang.String">/soap:Envelope/soap:Body/ws:GetQuoteResponse/ws:GetQuoteResult</xpath>
+        </setBody>
+        <log message="${body}"/>
+    </route>
+</camelContext></blueprint>	

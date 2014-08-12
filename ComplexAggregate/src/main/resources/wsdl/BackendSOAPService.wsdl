@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<definitions name="BackendSOAPService"
+
+targetNamespace="http://cxf.camel.mycompany.com"
+          xmlns:tns="http://cxf.camel.mycompany.com"
+          xmlns:xsd1="http://www.w3.org/2001/XMLSchema"
+          xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+          xmlns="http://schemas.xmlsoap.org/wsdl/">
+
+    <types>
+       <xsd1:schema targetNamespace="http://cxf.camel.mycompany.com">
+       </xsd1:schema>
+    </types>
+ 
+    <message name="InputMessage">
+        <part name="input" type="xsd1:string"/>
+    </message>
+
+    <message name="OutputMessage">
+        <part name="output" type="xsd1:string"/>
+    </message>
+
+    <portType name="BackendSOAPServicePortType">
+        <operation name="getSomethingFromSoap">
+           <input message="tns:InputMessage"/>
+           <output message="tns:OutputMessage"/>
+        </operation>
+    </portType>
+
+    <binding name="BackendSOAPServiceBinding" type="tns:BackendSOAPServicePortType">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="getSomethingFromSoap">
+           <soap:operation soapAction=""/>
+           <input>
+               <soap:body use="literal"/>
+           </input>
+           <output>
+               <soap:body use="literal"/>
+           </output>
+        </operation>
+    </binding>
+
+    <service name="BackendSOAPServiceService">
+        <documentation>My first service</documentation>
+        <port name="BackendSOAPPort" binding="tns:BackendSOAPServiceBinding">
+           <soap:address location="http://:9092/backendsoapservice"/>
+        </port>
+    </service>
+
+</definitions>
