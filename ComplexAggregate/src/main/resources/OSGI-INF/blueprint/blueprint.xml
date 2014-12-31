@@ -48,7 +48,7 @@
     </route>
     <route customId="true" id="Serviceproxy">
         <from uri="direct:serviceProxy"/>
-        <to uri="xslt:file:///home/graeme/.workspace/public/ComplexAggregate/src/main/resources/xsl/quote.xsl"/>
+        <to uri="xslt:file:///home/rsriniva/Projects/gcolman-fuse/ComplexAggregate/src/main/resources/xsl/quote.xsl"/>
         <to ref="callQuoteWebService"/>
         <setBody>
             <xpath resultType="java.lang.String">/soap:Envelope/soap:Body/ws:GetQuoteResponse/ws:GetQuoteResult</xpath>
